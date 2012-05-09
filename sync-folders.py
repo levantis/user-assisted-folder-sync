@@ -5,6 +5,8 @@ import sys,os,curses
 from time import sleep
 #from shutil import copytree as cp
 from filecmp import dircmp,cmp
+
+cp="cp -fLpr" #the command to use when copying
 t=0
 KB=1024
 MB=1024*KB
@@ -56,7 +58,7 @@ def syncmissing(a, b, onlyina):
 			w('skipped '+a+'/'+i+' due to file size > 10MB')
 		c=wnr(i+" not in "+b+". [c]opy [d]elete [s]kip [a]bort [i]gnore list ")
 		if(c=='c'):
-			s="cp -p -r '"+a+'/'+i+"' '"+b+"'"
+			s=cp+" '"+a+'/'+i+"' '"+b+"'"
 			w(s)
 			os.system(s)
 		elif(c=='d'):
@@ -98,11 +100,11 @@ def sync(a, b):
 				t.scroll(-1)
 			c=wnr('[1] use '+da+' version [2] use '+db+' version [s]kip [a]bort ')
 			if(c=='1'):
-				s="cp -p -r -f '"+a+'/'+i+"' '"+b+"'"
+				s=cp+" '"+a+'/'+i+"' '"+b+"'"
 				w(s)
 				os.system(s)
 			elif(c=='2'):
-				s="cp -p -r -f '"+b+'/'+i+"' '"+a+"'"
+				s=cp+" '"+b+'/'+i+"' '"+a+"'"
 				w(s)
 				os.system(s)
 			elif(c=='a'):
