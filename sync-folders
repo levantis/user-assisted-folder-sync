@@ -6,10 +6,19 @@ from time import sleep
 #from shutil import copytree as cp
 from filecmp import dircmp,cmp
 t=0
+KB=1024
+MB=1024*KB
+GB=1024*MB
+TB=1024*GB
+
+compare_mtime=True
 
 def key(a):
-	return hash((a.st_size, a.st_mtime))
-	#size, modification time
+	if compare_mtime:
+		return (a.st_size, a.st_mtime)
+		#size, modification time
+	else:
+		return a.st_size
 
 def different_heads(a,b):
 	da=''
@@ -41,7 +50,11 @@ def safeexit():
 
 def syncmissing(a, b, onlyina):
 	for i in onlyina:
-		c=wnr(i+" not in "+b+". [c]opy [d]elete [s]kip [a]bort ")
+		if a+'/'+i in ignorelist:
+			continue
+		if os.stat(a+'/'+i).st_size > 10*MB:
+			w('skipped '+a+'/'+i+' due to file size > 10MB')
+		c=wnr(i+" not in "+b+". [c]opy [d]elete [s]kip [a]bort [i]gnore list ")
 		if(c=='c'):
 			s="cp -p -r '"+a+'/'+i+"' '"+b+"'"
 			w(s)
@@ -52,6 +65,8 @@ def syncmissing(a, b, onlyina):
 			os.system(s)
 		elif(c=='a'):
 			safeexit()
+		elif(c=='i'):
+			ignorefile.write(a+'/'+i+'\n')
 		elif(c!='s'):
 			w("try pressing [s] or [a] next time!")
 			safeexit()
@@ -72,13 +87,16 @@ def sync(a, b):
 		ta=os.stat(a+'/'+i)
 		tb=os.stat(b+'/'+i)
 		if(key(ta)!=key(tb)):
+			if(ta.st_size==tb.st_size and abs(ta.st_mtime-tb.st_mtime)==1):
+				#this is a FAT 2-second resolution problem.
+				continue
 			w("Files "+a+"/"+i+" and "+b+"/"+i+" seem to differ.")
 			l=sorted([[a+"/"+i,ta], [b+"/"+i,tb]],key=lambda t:t[1].st_mtime)
 			for x in l:
 				w(x[0]+' size '+'{:,d}'.format(x[1].st_size)+' mtime '+str(x[1].st_mtime)+' ')
 				os.system('date -d "1970-01-01 UTC '+str(x[1].st_mtime)+' seconds" +"%Y-%m-%d %T %z"')
 				t.scroll(-1)
-			c=wnr('[1] use '+da+' version [2] use '+db+' version [s]kip [a]bort')
+			c=wnr('[1] use '+da+' version [2] use '+db+' version [s]kip [a]bort ')
 			if(c=='1'):
 				s="cp -p -r -f '"+a+'/'+i+"' '"+b+"'"
 				w(s)
@@ -99,6 +117,8 @@ def sync(a, b):
 		sync(a+'/'+i, b+'/'+i)
 	return
 
+ignorelist=open('.sync_ignore_list','r').read().splitlines()
+ignorefile=open('.sync_ignore_list','a')
 t = curses.initscr()
 curses.cbreak()
 t.idlok(1)
@@ -107,11 +127,15 @@ try:
 	w('User-assisted syncing tool. Check the keyboard language!')
 	#mx,my=t.getmaxyx()
 	#x0,y0=t.getbegyx()
+	if len(sys.argv)>3:
+		if sys.argv[3]=='-m':
+			compare_mtime=False
 	sync(sys.argv[1], sys.argv[2])
 except KeyboardInterrupt:
 	pass
 #except :
 #	w('exception! '+str(sys.exc_info()[0]))
+ignorefile.close()
 safeexit()
 
 #print(x0,y0,mx,my)
