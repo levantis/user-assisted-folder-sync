@@ -89,7 +89,7 @@ def sync(a, b):
 		ta=os.stat(a+'/'+i)
 		tb=os.stat(b+'/'+i)
 		if(key(ta)!=key(tb)):
-			if(ta.st_size==tb.st_size and abs(ta.st_mtime-tb.st_mtime)==1):
+			if(ta.st_size==tb.st_size and abs(round(ta.st_mtime)-round(tb.st_mtime))<=2):
 				#this is a FAT 2-second resolution problem.
 				continue
 			w("Files "+a+"/"+i+" and "+b+"/"+i+" seem to differ.")
